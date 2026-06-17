@@ -94,6 +94,40 @@ if [ ! -f "$INITALIZED" ]; then
   fi
 
   ##
+  # SMB over QUIC CONFIGURATION
+  ##
+  if [ ! -z ${SAMBA_QUIC_ENABLE+x} ]
+  then
+    echo ">> SAMBA QUIC: enabling SMB over QUIC support"
+
+    # Default TLS paths
+    QUIC_CERTFILE=${SAMBA_QUIC_CERTFILE:-/etc/samba/tls/cert.pem}
+    QUIC_KEYFILE=${SAMBA_QUIC_KEYFILE:-/etc/samba/tls/key.pem}
+    QUIC_CAFILE=${SAMBA_QUIC_CAFILE:-/etc/samba/tls/ca.pem}
+
+    # Auto-generate self-signed cert if not present
+    if [ ! -f "$QUIC_CERTFILE" ] || [ ! -f "$QUIC_KEYFILE" ]; then
+      echo ">> SAMBA QUIC: no TLS cert found, generating self-signed certificate"
+      QUIC_CN=${SAMBA_QUIC_CN:-$(hostname)}
+      openssl req -x509 -newkey rsa:4096 -nodes \
+        -keyout "$QUIC_KEYFILE" \
+        -out "$QUIC_CERTFILE" \
+        -days 365 \
+        -subj "/CN=$QUIC_CN" \
+        -addext "subjectAltName=DNS:$QUIC_CN" 2>/dev/null
+      cp "$QUIC_CERTFILE" "$QUIC_CAFILE"
+      echo ">> SAMBA QUIC: self-signed cert generated for CN=$QUIC_CN"
+    fi
+
+    echo '   tls enabled = yes' >> /etc/samba/smb.conf
+    echo '   tls certfile = '"$QUIC_CERTFILE" >> /etc/samba/smb.conf
+    echo '   tls keyfile = '"$QUIC_KEYFILE" >> /etc/samba/smb.conf
+    echo '   tls cafile = '"$QUIC_CAFILE" >> /etc/samba/smb.conf
+    echo '   server quic = yes' >> /etc/samba/smb.conf
+    echo ">> SAMBA QUIC: configured with cert=$QUIC_CERTFILE key=$QUIC_KEYFILE ca=$QUIC_CAFILE"
+  fi
+
+  ##
   # GLOBAL CONFIGURATION
   ##
   echo "$SAMBA_GLOBAL_STANZA" | sed 's/;/\n   /g' | grep . >> /etc/samba/smb.conf
