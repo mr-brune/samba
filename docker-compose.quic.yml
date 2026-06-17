@@ -7,7 +7,9 @@ services:
     build: .
     image: ghcr.io/mr-brune/samba
     restart: always
-    network_mode: host
+    # NOTE: Do NOT use network_mode: host together with ports: - it silently
+    # ignores the port mappings and UDP 443 will never be reachable from outside.
+    # Use explicit port mapping so UDP 443 is correctly forwarded.
     environment:
       MODEL: 'TimeCapsule'
       AVAHI_NAME: StorageServer
@@ -34,7 +36,7 @@ services:
 
     ports:
       - "445:445/tcp"     # SMB classic (TCP)
-      - "443:443/udp"     # SMB over QUIC (UDP)
+      - "443:443/udp"     # SMB over QUIC (UDP) - requires smbd with QUIC/ngtcp2 support
 
     volumes:
       - /etc/avahi/services/:/external/avahi

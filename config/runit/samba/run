@@ -1,3 +1,8 @@
 #!/bin/sh -x
 sleep 2
-exec smbd --foreground
+# --no-process-group: required inside a container so smbd stays in the
+# foreground process group and runit can supervise it correctly.
+# Without this flag smbd forks into a new process group and runit
+# loses track of it; the QUIC UDP socket on port 443 is also never
+# bound in that case.
+exec smbd --foreground --no-process-group
