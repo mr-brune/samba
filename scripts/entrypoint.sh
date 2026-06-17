@@ -123,7 +123,7 @@ if [ ! -f "$INITALIZED" ]; then
     echo '   tls certfile = '"$QUIC_CERTFILE" >> /etc/samba/smb.conf
     echo '   tls keyfile = '"$QUIC_KEYFILE" >> /etc/samba/smb.conf
     echo '   tls cafile = '"$QUIC_CAFILE" >> /etc/samba/smb.conf
-    echo '   server quic = yes' >> /etc/samba/smb.conf
+    echo '   server smb transports = tcp, quic' >> /etc/samba/smb.conf
     echo ">> SAMBA QUIC: configured with cert=$QUIC_CERTFILE key=$QUIC_KEYFILE ca=$QUIC_CAFILE"
   fi
 
