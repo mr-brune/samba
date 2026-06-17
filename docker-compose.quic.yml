@@ -1,0 +1,45 @@
+# docker-compose.quic.yml - Example with SMB over QUIC enabled
+# Requires samba 4.23+ (alpine:edge) with libngtcp2/libquic bundled
+# No kernel modules required - QUIC runs fully in userspace via ngtcp2
+
+services:
+  samba:
+    build: .
+    image: ghcr.io/mr-brune/samba
+    restart: always
+    # NOTE: Do NOT use network_mode: host together with ports: - it silently
+    # ignores the port mappings and UDP 443 will never be reachable from outside.
+    # Use explicit port mapping so UDP 443 is correctly forwarded.
+    environment:
+      MODEL: 'TimeCapsule'
+      AVAHI_NAME: StorageServer
+
+      SAMBA_CONF_LOG_LEVEL: 3
+
+      # --- SMB over QUIC ---
+      # Set this variable to enable QUIC support
+      SAMBA_QUIC_ENABLE: 1
+
+      # Optional: provide your own TLS certificates
+      # If not set, a self-signed cert will be auto-generated at startup
+      # SAMBA_QUIC_CERTFILE: /etc/samba/tls/cert.pem
+      # SAMBA_QUIC_KEYFILE: /etc/samba/tls/key.pem
+      # SAMBA_QUIC_CAFILE: /etc/samba/tls/ca.pem
+
+      # CN used for auto-generated self-signed cert (default: container hostname)
+      # SAMBA_QUIC_CN: mysamba.example.com
+
+      ACCOUNT_alice: alipass
+      UID_alice: 1000
+
+      SAMBA_VOLUME_CONFIG_share: "[Share]; path=/shares/data; valid users = alice; guest ok = no; read only = no; browseable = yes"
+
+    ports:
+      - "445:445/tcp"     # SMB classic (TCP)
+      - "443:443/udp"     # SMB over QUIC (UDP) - requires smbd with QUIC/ngtcp2 support
+
+    volumes:
+      - /etc/avahi/services/:/external/avahi
+      - ./shares/data:/shares/data
+      # Mount your own TLS certs (optional, auto-generated if missing)
+      # - ./certs:/etc/samba/tls:ro
